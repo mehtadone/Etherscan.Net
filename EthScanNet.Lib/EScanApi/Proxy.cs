@@ -19,8 +19,5 @@ namespace EthScanNet.Lib.EScanApi
             EScanEthBlockNumber ethBlockNumber = new(this.Client);
             return await ethBlockNumber.SendAsync();
         }
-        
-
-
     }
 }

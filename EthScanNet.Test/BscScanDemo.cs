@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using EthScanNet.Lib;
 using EthScanNet.Lib.Models.ApiResponses.Accounts;
@@ -6,6 +7,7 @@ using EthScanNet.Lib.Models.ApiResponses.Proxy;
 using EthScanNet.Lib.Models.ApiResponses.Stats;
 using EthScanNet.Lib.Models.ApiResponses.Tokens;
 using EthScanNet.Lib.Models.EScan;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EthScanNet.Test
 {
@@ -15,13 +17,20 @@ namespace EthScanNet.Test
 
         public BscScanDemo(string apiKey = null)
         {
-            this._apiKey = apiKey ?? "YourApiKeyToken";
+            _apiKey = apiKey ?? "YourApiKeyToken";
         }
 
         public async Task RunApiCommandsAsync()
         {
+            var services = new ServiceCollection();
+            services.AddHttpClient();
+
+            var serviceProvider = services.BuildServiceProvider();
+            var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+            
             Console.WriteLine("Running BSCScanDemo with APIKey: " + this._apiKey);
-            EScanClient client = new(EScanNetwork.BscMainNet, this._apiKey);
+            
+            var client = new EScanClient(EScanNetwork.BscMainNet, _apiKey, httpClientFactory);
 
             try
             {
