@@ -44,17 +44,62 @@ namespace EthScanNet.Lib.Models.ApiRequests
             Action = action.ToString();
         }
 
-        internal Task<dynamic> SendAsync()
+        internal async Task<dynamic> SendAsync()
         {
-            return _eScanClient.RateLimiter.Enqueue(() => SendRequestWithoutResultAsync());
+            using var client = _eScanClient.HttpClientFactory.CreateClient();
+
+            var requestUrl = EScanClient.BaseUrl;
+
+            var queryString = this.ToQueryString();
+            var finalUrl = requestUrl + queryString + "&apiKey=" + _eScanClient.ApiKeyToken;
+
+            Debug.WriteLine(finalUrl);
+
+            var requestMessage = new HttpRequestMessage(HttpMethod.Get, finalUrl);
+            try
+            {
+                var result = await _eScanClient.RateLimiter.Enqueue(() => client.SendAsync(requestMessage));
+                if (!result.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException("Server issue (" + result.StatusCode + "): " + result.ReasonPhrase);
+                }
+
+                var resultStream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+                if (_responseType.BaseType == typeof(EScanJsonRpcResponse))
+                {
+                    var genericJsonResponse = await resultStream.Get<EScanGenericJsonResponse>().ConfigureAwait(false);
+                    if (genericJsonResponse.JsonRpc != null)
+                    {
+                        dynamic jsonResponseObject = resultStream.Get(_responseType);
+                        return jsonResponseObject;
+                    }
+                }
+
+                var genericResponse = await resultStream.Get<EScanGenericResponse>().ConfigureAwait(false);
+                if (genericResponse.Message.StartsWith("NotOk", StringComparison.OrdinalIgnoreCase))
+                {
+                    var errorMessage = "Error with API result: (" + genericResponse.ResultMessage + ")";
+                    if (genericResponse.ResultMessage is string message &&
+                        message.IndexOf("Max rate limit reached", StringComparison.OrdinalIgnoreCase) > -1)
+                    {
+                        throw new EtherscanApiRateLimitException(errorMessage);
+                    }
+
+                    throw new(errorMessage);
+                }
+
+                dynamic responseObject = await resultStream.Get(_responseType).ConfigureAwait(false);
+                return responseObject;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
         }
 
-        internal Task<dynamic> SendAsync<T>(T payload)
-        {
-            return _eScanClient.RateLimiter.Enqueue(() => SendRequestWithResultAsync(payload));
-        }
-
-        private async Task<dynamic> SendRequestWithResultAsync<T>(T payload)
+        internal async Task<dynamic> SendAsync<T>(T payload)
         {
             using var client = _eScanClient.HttpClientFactory.CreateClient();
             var requestUrl = EScanClient.BaseUrl;
@@ -70,7 +115,7 @@ namespace EthScanNet.Lib.Models.ApiRequests
 
             try
             {
-                var result = await client.PostAsync(requestUrl, content);
+                var result = await _eScanClient.RateLimiter.Enqueue(() => client.PostAsync(requestUrl, content));
                 if (!result.IsSuccessStatusCode)
                 {
                     throw new HttpRequestException("Server issue (" + result.StatusCode + "): " +
@@ -105,61 +150,6 @@ namespace EthScanNet.Lib.Models.ApiRequests
                     }
 
                     throw new("Error with API result: (Unknown)");
-                }
-
-                dynamic responseObject = await resultStream.Get(_responseType).ConfigureAwait(false);
-                return responseObject;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-        }
-
-        private async Task<dynamic> SendRequestWithoutResultAsync()
-        {
-            using var client = _eScanClient.HttpClientFactory.CreateClient();
-
-            var requestUrl = EScanClient.BaseUrl;
-
-            var queryString = this.ToQueryString();
-            var finalUrl = requestUrl + queryString + "&apiKey=" + _eScanClient.ApiKeyToken;
-
-            Debug.WriteLine(finalUrl);
-
-            var requestMessage = new HttpRequestMessage(HttpMethod.Get, finalUrl);
-            try
-            {
-                var result = await client.SendAsync(requestMessage);
-                if (!result.IsSuccessStatusCode)
-                {
-                    throw new HttpRequestException("Server issue (" + result.StatusCode + "): " + result.ReasonPhrase);
-                }
-
-                var resultStream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
-
-                if (_responseType.BaseType == typeof(EScanJsonRpcResponse))
-                {
-                    var genericJsonResponse = await resultStream.Get<EScanGenericJsonResponse>().ConfigureAwait(false);
-                    if (genericJsonResponse.JsonRpc != null)
-                    {
-                        dynamic jsonResponseObject = resultStream.Get(_responseType);
-                        return jsonResponseObject;
-                    }
-                }
-
-                var genericResponse = await resultStream.Get<EScanGenericResponse>().ConfigureAwait(false);
-                if (genericResponse.Message.StartsWith("NotOk", StringComparison.OrdinalIgnoreCase))
-                {
-                    var errorMessage = "Error with API result: (" + genericResponse.ResultMessage + ")";
-                    if (genericResponse.ResultMessage is string message &&
-                        message.IndexOf("Max rate limit reached", StringComparison.OrdinalIgnoreCase) > -1)
-                    {
-                        throw new EtherscanApiRateLimitException(errorMessage);
-                    }
-
-                    throw new(errorMessage);
                 }
 
                 dynamic responseObject = await resultStream.Get(_responseType).ConfigureAwait(false);
