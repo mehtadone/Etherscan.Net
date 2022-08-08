@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
-using System.Reflection.Emit;
 using EthScanNet.Lib.EScanApi;
 using EthScanNet.Lib.Helper;
+using RateLimiter;
 
 namespace EthScanNet.Lib
 {
@@ -22,9 +24,9 @@ namespace EthScanNet.Lib
         
         public string ApiKeyToken { get; }
         
-        public RateLimiter RateLimiter { get; set; }
+        internal TimeLimiter RateLimiter { get; set; }
         
-        public IHttpClientFactory HttpClientFactory { get; }
+        internal IHttpClientFactory HttpClientFactory { get; }
 
         /// <summary>
         /// The base connection of the API, use this to access the features from within the account
@@ -33,7 +35,7 @@ namespace EthScanNet.Lib
         /// <param name="apiKeyToken">The API key needed to be able to access more results</param>
         /// <param name="httpClientFactory">A factory abstraction for a component that can create <see cref="HttpClient"/> instances with custom configuration for a given logical name.</param>
         /// <param name="throttleMs">Delay between transaction requests, set to 200ms, as registered users are allowed 5/seconds</param>
-        public EScanClient(EScanNetwork network, string apiKeyToken, IHttpClientFactory httpClientFactory, Action<RateLimiter> configureRateLimiter = null)
+        public EScanClient(EScanNetwork network, string apiKeyToken, IHttpClientFactory httpClientFactory, params RateLimitOptions[] options)
         {
             BaseUrl = network;
             Network = network;
@@ -46,20 +48,31 @@ namespace EthScanNet.Lib
             Proxy = new(this);
             Contracts = new(this);
             
-            RateLimiter = ConfigureRateLimiter(configureRateLimiter);
+            RateLimiter = ConfigureRateLimiter(options);
         }
 
-        private RateLimiter ConfigureRateLimiter(Action<RateLimiter> configureRateLimiter)
+        private TimeLimiter ConfigureRateLimiter(RateLimitOptions[] options)
         {
-            var rateLimiter = new EthScanRateLimiter
-            {
-                Count = 5,
-                Duration = TimeSpan.FromMilliseconds(1000)
-            };
+            var rateLimitOptions = new List<RateLimitOptions>(options);
             
-            configureRateLimiter?.Invoke(rateLimiter);
-
-            return rateLimiter;
+            if (!options.Any())
+            {
+                rateLimitOptions.Add(new RateLimitOptions()
+                {
+                    Count = 5,
+                    TimeSpan = TimeSpan.FromSeconds(1)
+                });
+            }
+            
+            var constraints = new List<IAwaitableConstraint>();
+			
+            foreach (var option in rateLimitOptions)
+            {
+                var constraint = new CountByIntervalAwaitableConstraint(option.Count, option.TimeSpan);
+                constraints.Add(constraint);
+            }
+			
+            return TimeLimiter.Compose(constraints.ToArray());
         }
     }
 }

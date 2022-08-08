@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using EthScanNet.Lib;
@@ -53,6 +54,15 @@ namespace EthScanNet.Test
         private async Task RunAccountCommandsAsync(EScanClient client)
         {
             Console.WriteLine("Account test started");
+            var tasks = new List<Task>();
+
+            for (var i = 0; i < 30; i++)
+            {
+                tasks.Add(client.Accounts.GetBalanceAsync(new("0x0000000000000000000000000000000000001004")));
+            }
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+            
             EScanBalance apiBalance = await client.Accounts.GetBalanceAsync(new("0x0000000000000000000000000000000000001004"));
             Console.WriteLine("GetBalanceAsync: " +  apiBalance.Message);
             EScanTransactions normalApiTransaction = await client.Accounts.GetNormalTransactionsAsync(new("0x0000000000000000000000000000000000001004"));
