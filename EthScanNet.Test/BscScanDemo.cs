@@ -68,8 +68,8 @@ namespace EthScanNet.Test
             Console.WriteLine("GetInternalTransactionsAsync: " + internalApiTransaction.Message);
             EScanMinedBlocks apiMinedBlocks = await client.Accounts.GetMinedBlocksAsync(new("0x78f3adfc719c99674c072166708589033e2d9afe"));
             Console.WriteLine("GetMinedBlocksAsync: " + apiMinedBlocks.Message);
-            EScanTokenTransferEvents apiTokenTransferEvents = await client.Accounts.GetTokenEvents(new("0xf09f5e21f86692c614d2d7b47e3b9729dc1c436f"));
-            Console.WriteLine("GetTokenEvents: " + apiTokenTransferEvents.Message);
+            EScanTokenTransferEvents apiTokenTransferEvents = await client.Accounts.GetNftErc721TokenEvents(new("0xf09f5e21f86692c614d2d7b47e3b9729dc1c436f"));
+            Console.WriteLine("GetNftErc721TokenEvents: " + apiTokenTransferEvents.Message);
             EScanBalance tokenBalanceForAddress = await client.Accounts.GetTokenBalanceForAddress(new("0x2b7fc60fd13f32fed8730113a14e3468d2f17cdc"), new("0xf7844cb890f4c339c497aeab599abdc3c874b67a"));
             Console.WriteLine("GetTokenBalanceForAddress: " + tokenBalanceForAddress.Message);
             Console.WriteLine("Account test complete");

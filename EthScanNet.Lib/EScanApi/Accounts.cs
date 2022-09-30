@@ -121,16 +121,26 @@ namespace EthScanNet.Lib.EScanApi
         /// Get a list of "ERC721 - Token Transfer Events" by Address
         /// </summary>
         /// <param name="address"></param>
+        /// <param name="startBlock">Starting blockNo to retrieve results from</param>
+        /// <param name="endBlock">ending blockNo to retrieve results from</param>
+        /// <param name="page">the number of the page to return</param>
+        /// <param name="offset">the maximum number of results per page to return</param>
         /// <returns></returns>
-        public async Task<EScanTokenTransferEvents> GetTokenEvents(EScanAddress address)
+        public async Task<EScanTokenTransferEvents> GetNftErc721TokenEvents(EScanAddress address, ulong? startBlock = null,
+            ulong? endBlock = null,
+            int? page = null,
+            int? offset = null)
         {
-            EScanGetTokenTransferEvents getTokenTransferEvents = new(address, this.Client);
+            EScanGetTokenTransferEvents getTokenTransferEvents = new(address, startBlock, endBlock, page, offset, this.Client);
             return await getTokenTransferEvents.SendAsync();
         }
 
-        public async Task<EScanTokenTransferEvents> GetTokenEvents(EScanAddress address, EScanAddress tokenAddress)
+        public async Task<EScanTokenTransferEvents> GetNftErc721TokenEvents(EScanAddress address, EScanAddress tokenAddress, ulong? startBlock = null,
+            ulong? endBlock = null,
+            int? page = null,
+            int? offset = null)
         {
-            EScanGetTokenTransferEvents getTokenTransferEvents = new(address, this.Client);
+            EScanGetTokenTransferEvents getTokenTransferEvents = new(address, startBlock, endBlock, page, offset, this.Client);
             return await getTokenTransferEvents.SendAsync();
         }
 
