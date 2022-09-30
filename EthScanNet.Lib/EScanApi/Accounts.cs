@@ -161,10 +161,20 @@ namespace EthScanNet.Lib.EScanApi
         /// Get a list of "ERC20 - Token Transfer Events" by Address
         /// </summary>
         /// <param name="address"></param>
+        /// <param name="startBlock">Starting blockNo to retrieve results from</param>
+        /// <param name="endBlock">ending blockNo to retrieve results from</param>
+        /// <param name="page">the number of the page to return</param>
+        /// <param name="offset">the maximum number of results per page to return</param>
         /// <returns></returns>
-        public async Task<EScanERC20TokenTransferEvents> GetERC20TokenEvents(EScanAddress address)
+        public async Task<EScanERC20TokenTransferEvents> GetERC20TokenEvents(EScanAddress address, ulong? startBlock = null,
+            ulong? endBlock = null,
+            int? page = null,
+            int? offset = null)
         {
-            EScanGetERC20TokenTransferEvents getTokenTransferEvents = new(address, this.Client);
+            EScanGetERC20TokenTransferEvents getTokenTransferEvents = new(address, startBlock,
+                endBlock,
+                page,
+                offset, this.Client);
             return await getTokenTransferEvents.SendAsync();
         }
     }

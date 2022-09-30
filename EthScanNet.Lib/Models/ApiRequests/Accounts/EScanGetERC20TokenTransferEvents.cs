@@ -11,9 +11,21 @@ namespace EthScanNet.Lib.Models.ApiRequests.Accounts
 {
     internal class EScanGetERC20TokenTransferEvents: EScanAccountRequest
     {
-        public EScanGetERC20TokenTransferEvents(EScanAddress address, EScanClient eScanClient)
+        public int? Page { get; set; }
+        public int? Offset { get; set; }
+        public ulong? StartBlock { get; private set; }
+        public ulong? EndBlock { get; private set; }
+
+        public EScanGetERC20TokenTransferEvents(EScanAddress address, ulong? startBlock,
+            ulong? endBlock,
+            int? page,
+            int? offset, EScanClient eScanClient)
            : base(address, eScanClient, EScanModules.Account, EScanActions.TxErc20Token, typeof(EScanERC20TokenTransferEvents))
         {
+            this.StartBlock = startBlock;
+            this.EndBlock = endBlock;
+            this.Page = page;
+            this.Offset = offset;
         }
     }
 }
